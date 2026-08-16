@@ -1,0 +1,272 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="mini_cheetah">
+
+  <!-- ==================== 材质定义 ==================== -->
+  <material name="dark_grey">
+    <color rgba="0.2 0.2 0.2 1.0"/>
+  </material>
+  <material name="orange">
+    <color rgba="1.0 0.5 0.0 1.0"/>
+  </material>
+  <material name="blue">
+    <color rgba="0.0 0.4 0.8 1.0"/>
+  </material>
+  <material name="cyan">
+    <color rgba="0.0 0.8 0.8 1.0"/>
+  </material>
+  <material name="red">
+    <color rgba="0.9 0.1 0.1 1.0"/>
+  </material>
+
+  <!-- ==================== 几何与质量物理参数定义 ==================== -->
+  <xacro:property name="body_length" value="0.38"/> <!-- X 方向长度 -->
+  <xacro:property name="body_width" value="0.20"/>  <!-- Y 方向宽度 -->
+  <xacro:property name="body_height" value="0.08"/> <!-- Z 方向高度 -->
+  <xacro:property name="body_mass" value="3.3"/>    <!-- 躯干真实质量 -->
+
+  <xacro:property name="hip_offset_x" value="0.19"/>
+  <xacro:property name="hip_offset_y" value="0.104"/>
+
+  <xacro:property name="hip_length" value="0.06"/>
+  <xacro:property name="hip_mass" value="0.5"/>
+
+  <xacro:property name="thigh_length" value="0.209"/>
+  <xacro:property name="thigh_mass" value="0.6"/>
+
+  <xacro:property name="calf_length" value="0.195"/>
+  <xacro:property name="calf_mass" value="0.15"/>
+
+  <xacro:property name="foot_mass" value="0.05"/>
+
+  <!-- ==================== 机器人基座 (Base Link) ==================== -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="file://$(find mini_cheetah_demo)/meshes/trunk.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="${body_length} ${body_width} ${body_height}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${body_mass}"/>
+      <inertia ixx="0.012760" ixy="0.0" ixz="0.0" iyy="0.041470" iyz="0.0" izz="0.050710"/>
+    </inertial>
+  </link>
+
+  <gazebo reference="base_link">
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+
+  <!-- ==================== 单腿 3 自由度 Xacro 宏 ==================== -->
+  <xacro:macro name="leg" params="prefix side_x side_y">
+    
+    <!-- 1. Hip 关节 (Roll 轴: X 轴旋转) -->
+    <joint name="${prefix}_hip_joint" type="revolute">
+      <parent link="base_link"/>
+      <child link="${prefix}_hip"/>
+      <origin xyz="${side_x * hip_offset_x} ${side_y * hip_offset_y} 0" rpy="0 0 0"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="-0.8" upper="0.8" effort="17.0" velocity="40.0"/>
+      <dynamics damping="0.1" friction="0.05"/>
+    </joint>
+
+    <link name="${prefix}_hip">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="file://$(find mini_cheetah_demo)/meshes/hip.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 ${side_y * hip_length / 2.0} 0" rpy="1.5708 0 0"/>
+        <geometry>
+          <cylinder radius="0.03" length="${hip_length}"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <origin xyz="0 ${side_y * hip_length / 2.0} 0" rpy="1.5708 0 0"/>
+        <mass value="${hip_mass}"/>
+        <inertia ixx="0.000467" ixy="0.0" ixz="0.0" iyy="0.000400" iyz="0.0" izz="0.000467"/>
+      </inertial>
+    </link>
+
+    <!-- 2. Thigh 关节 (Pitch 轴: Y 轴旋转) -->
+    <joint name="${prefix}_thigh_joint" type="revolute">
+      <parent link="${prefix}_hip"/>
+      <child link="${prefix}_thigh"/>
+      <origin xyz="0 ${side_y * hip_length} 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="-1.5" upper="1.5" effort="17.0" velocity="40.0"/>
+      <dynamics damping="0.1" friction="0.05"/>
+    </joint>
+
+    <link name="${prefix}_thigh">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <xacro:if value="${side_y == 1}">
+            <mesh filename="file://$(find mini_cheetah_demo)/meshes/thigh.dae" scale="1 1 1"/>
+          </xacro:if>
+          <xacro:if value="${side_y == -1}">
+            <mesh filename="file://$(find mini_cheetah_demo)/meshes/thigh_mirror.dae" scale="1 1 1"/>
+          </xacro:if>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${-thigh_length / 2.0}" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.03 0.03 ${thigh_length}"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <origin xyz="0 0 ${-thigh_length / 2.0}" rpy="0 0 0"/>
+        <mass value="${thigh_mass}"/>
+        <inertia ixx="0.002264" ixy="0.0" ixz="0.0" iyy="0.002264" iyz="0.0" izz="0.000160"/>
+      </inertial>
+    </link>
+
+    <!-- 3. Calf 关节 (Pitch 轴: Y 轴旋转) -->
+    <joint name="${prefix}_calf_joint" type="revolute">
+      <parent link="${prefix}_thigh"/>
+      <child link="${prefix}_calf"/>
+      <origin xyz="0 0 ${-thigh_length}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="-2.5" upper="-0.5" effort="17.0" velocity="40.0"/>
+      <dynamics damping="0.1" friction="0.05"/>
+    </joint>
+
+    <link name="${prefix}_calf">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="file://$(find mini_cheetah_demo)/meshes/calf.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${-calf_length / 2.0}" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.02 0.02 ${calf_length}"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <origin xyz="0 0 ${-calf_length / 2.0}" rpy="0 0 0"/>
+        <mass value="${calf_mass}"/>
+        <inertia ixx="0.000480" ixy="0.0" ixz="0.0" iyy="0.000480" iyz="0.0" izz="0.000010"/>
+      </inertial>
+    </link>
+
+    <!-- Foot 末端球体 (带有橡胶高摩擦力接触属性) -->
+    <joint name="${prefix}_foot_joint" type="fixed">
+      <parent link="${prefix}_calf"/>
+      <child link="${prefix}_foot"/>
+      <origin xyz="0 0 ${-calf_length}" rpy="0 0 0"/>
+    </joint>
+
+    <gazebo reference="${prefix}_hip">
+      <material>Gazebo/Grey</material>
+    </gazebo>
+    <gazebo reference="${prefix}_thigh">
+      <material>Gazebo/DarkGrey</material>
+    </gazebo>
+    <gazebo reference="${prefix}_calf">
+      <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <link name="${prefix}_foot">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.025"/>
+        </geometry>
+        <material name="red"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.025"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="${foot_mass}"/>
+        <inertia ixx="0.000013" ixy="0.0" ixz="0.0" iyy="0.000013" iyz="0.0" izz="0.000013"/>
+      </inertial>
+    </link>
+
+    <!-- Gazebo 物理属性配置: 足端地面高摩擦力与刚度 -->
+    <gazebo reference="${prefix}_foot">
+      <mu1>1.2</mu1>
+      <mu2>1.2</mu2>
+      <kp>1000000.0</kp>
+      <kd>100.0</kd>
+      <max_vel>0.01</max_vel>
+      <min_depth>0.001</min_depth>
+      <material>Gazebo/Red</material>
+    </gazebo>
+
+    <!-- Gazebo Harmonic 关节位置闭环 PID 力矩控制器 -->
+    <gazebo>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+        <joint_name>${prefix}_hip_joint</joint_name>
+        <topic>/cmd_pos/${prefix}_hip_joint</topic>
+        <p_gain>100</p_gain>
+        <i_gain>0.1</i_gain>
+        <d_gain>3.0</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>25</cmd_max>
+        <cmd_min>-25</cmd_min>
+      </plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+        <joint_name>${prefix}_thigh_joint</joint_name>
+        <topic>/cmd_pos/${prefix}_thigh_joint</topic>
+        <p_gain>120</p_gain>
+        <i_gain>0.1</i_gain>
+        <d_gain>3.0</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>25</cmd_max>
+        <cmd_min>-25</cmd_min>
+      </plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+        <joint_name>${prefix}_calf_joint</joint_name>
+        <topic>/cmd_pos/${prefix}_calf_joint</topic>
+        <p_gain>120</p_gain>
+        <i_gain>0.1</i_gain>
+        <d_gain>3.0</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>25</cmd_max>
+        <cmd_min>-25</cmd_min>
+      </plugin>
+    </gazebo>
+
+  </xacro:macro>
+
+  <!-- ==================== 四条腿实例化 ==================== -->
+  <xacro:leg prefix="FL" side_x="1" side_y="1"/>
+  <xacro:leg prefix="FR" side_x="1" side_y="-1"/>
+  <xacro:leg prefix="RL" side_x="-1" side_y="1"/>
+  <xacro:leg prefix="RR" side_x="-1" side_y="-1"/>
+
+  <!-- ==================== Gazebo Harmonic 物理引擎插件配置 ==================== -->
+  <gazebo>
+    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+      <topic>/joint_states</topic>
+    </plugin>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster">
+    </plugin>
+    <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
+      <odom_frame>odom</odom_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+      <odom_publish_frequency>50</odom_publish_frequency>
+    </plugin>
+  </gazebo>
+
+</robot>
