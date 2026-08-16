@@ -10,74 +10,74 @@
   gz_type_name: 'gz.msgs.Model'
   direction: GZ_TO_ROS
 
-- ros_topic_name: '/cmd_pos/FL_hip_joint'
-  gz_topic_name: '/cmd_pos/FL_hip_joint'
+- ros_topic_name: '/cmd_effort/FL_hip_joint'
+  gz_topic_name: '/model/mini_cheetah/joint/FL_hip_joint/cmd_force'
   ros_type_name: 'std_msgs/msg/Float64'
   gz_type_name: 'gz.msgs.Double'
   direction: ROS_TO_GZ
 
-- ros_topic_name: '/cmd_pos/FL_thigh_joint'
-  gz_topic_name: '/cmd_pos/FL_thigh_joint'
+- ros_topic_name: '/cmd_effort/FL_thigh_joint'
+  gz_topic_name: '/model/mini_cheetah/joint/FL_thigh_joint/cmd_force'
   ros_type_name: 'std_msgs/msg/Float64'
   gz_type_name: 'gz.msgs.Double'
   direction: ROS_TO_GZ
 
-- ros_topic_name: '/cmd_pos/FL_calf_joint'
-  gz_topic_name: '/cmd_pos/FL_calf_joint'
+- ros_topic_name: '/cmd_effort/FL_calf_joint'
+  gz_topic_name: '/model/mini_cheetah/joint/FL_calf_joint/cmd_force'
   ros_type_name: 'std_msgs/msg/Float64'
   gz_type_name: 'gz.msgs.Double'
   direction: ROS_TO_GZ
 
-- ros_topic_name: '/cmd_pos/FR_hip_joint'
-  gz_topic_name: '/cmd_pos/FR_hip_joint'
+- ros_topic_name: '/cmd_effort/FR_hip_joint'
+  gz_topic_name: '/model/mini_cheetah/joint/FR_hip_joint/cmd_force'
   ros_type_name: 'std_msgs/msg/Float64'
   gz_type_name: 'gz.msgs.Double'
   direction: ROS_TO_GZ
 
-- ros_topic_name: '/cmd_pos/FR_thigh_joint'
-  gz_topic_name: '/cmd_pos/FR_thigh_joint'
+- ros_topic_name: '/cmd_effort/FR_thigh_joint'
+  gz_topic_name: '/model/mini_cheetah/joint/FR_thigh_joint/cmd_force'
   ros_type_name: 'std_msgs/msg/Float64'
   gz_type_name: 'gz.msgs.Double'
   direction: ROS_TO_GZ
 
-- ros_topic_name: '/cmd_pos/FR_calf_joint'
-  gz_topic_name: '/cmd_pos/FR_calf_joint'
+- ros_topic_name: '/cmd_effort/FR_calf_joint'
+  gz_topic_name: '/model/mini_cheetah/joint/FR_calf_joint/cmd_force'
   ros_type_name: 'std_msgs/msg/Float64'
   gz_type_name: 'gz.msgs.Double'
   direction: ROS_TO_GZ
 
-- ros_topic_name: '/cmd_pos/RL_hip_joint'
-  gz_topic_name: '/cmd_pos/RL_hip_joint'
+- ros_topic_name: '/cmd_effort/RL_hip_joint'
+  gz_topic_name: '/model/mini_cheetah/joint/RL_hip_joint/cmd_force'
   ros_type_name: 'std_msgs/msg/Float64'
   gz_type_name: 'gz.msgs.Double'
   direction: ROS_TO_GZ
 
-- ros_topic_name: '/cmd_pos/RL_thigh_joint'
-  gz_topic_name: '/cmd_pos/RL_thigh_joint'
+- ros_topic_name: '/cmd_effort/RL_thigh_joint'
+  gz_topic_name: '/model/mini_cheetah/joint/RL_thigh_joint/cmd_force'
   ros_type_name: 'std_msgs/msg/Float64'
   gz_type_name: 'gz.msgs.Double'
   direction: ROS_TO_GZ
 
-- ros_topic_name: '/cmd_pos/RL_calf_joint'
-  gz_topic_name: '/cmd_pos/RL_calf_joint'
+- ros_topic_name: '/cmd_effort/RL_calf_joint'
+  gz_topic_name: '/model/mini_cheetah/joint/RL_calf_joint/cmd_force'
   ros_type_name: 'std_msgs/msg/Float64'
   gz_type_name: 'gz.msgs.Double'
   direction: ROS_TO_GZ
 
-- ros_topic_name: '/cmd_pos/RR_hip_joint'
-  gz_topic_name: '/cmd_pos/RR_hip_joint'
+- ros_topic_name: '/cmd_effort/RR_hip_joint'
+  gz_topic_name: '/model/mini_cheetah/joint/RR_hip_joint/cmd_force'
   ros_type_name: 'std_msgs/msg/Float64'
   gz_type_name: 'gz.msgs.Double'
   direction: ROS_TO_GZ
 
-- ros_topic_name: '/cmd_pos/RR_thigh_joint'
-  gz_topic_name: '/cmd_pos/RR_thigh_joint'
+- ros_topic_name: '/cmd_effort/RR_thigh_joint'
+  gz_topic_name: '/model/mini_cheetah/joint/RR_thigh_joint/cmd_force'
   ros_type_name: 'std_msgs/msg/Float64'
   gz_type_name: 'gz.msgs.Double'
   direction: ROS_TO_GZ
 
-- ros_topic_name: '/cmd_pos/RR_calf_joint'
-  gz_topic_name: '/cmd_pos/RR_calf_joint'
+- ros_topic_name: '/cmd_effort/RR_calf_joint'
+  gz_topic_name: '/model/mini_cheetah/joint/RR_calf_joint/cmd_force'
   ros_type_name: 'std_msgs/msg/Float64'
   gz_type_name: 'gz.msgs.Double'
   direction: ROS_TO_GZ

@@ -210,40 +210,16 @@
       <material>Gazebo/Red</material>
     </gazebo>
 
-    <!-- Gazebo Harmonic 关节位置闭环 PID 力矩控制器 -->
+    <!-- Gazebo Harmonic 关节力矩直通控制器 (ApplyJointForce) -->
     <gazebo>
-      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+      <plugin filename="gz-sim-apply-joint-force-system" name="gz::sim::systems::ApplyJointForce">
         <joint_name>${prefix}_hip_joint</joint_name>
-        <topic>/cmd_pos/${prefix}_hip_joint</topic>
-        <p_gain>100</p_gain>
-        <i_gain>0.1</i_gain>
-        <d_gain>3.0</d_gain>
-        <i_max>1</i_max>
-        <i_min>-1</i_min>
-        <cmd_max>25</cmd_max>
-        <cmd_min>-25</cmd_min>
       </plugin>
-      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+      <plugin filename="gz-sim-apply-joint-force-system" name="gz::sim::systems::ApplyJointForce">
         <joint_name>${prefix}_thigh_joint</joint_name>
-        <topic>/cmd_pos/${prefix}_thigh_joint</topic>
-        <p_gain>120</p_gain>
-        <i_gain>0.1</i_gain>
-        <d_gain>3.0</d_gain>
-        <i_max>1</i_max>
-        <i_min>-1</i_min>
-        <cmd_max>25</cmd_max>
-        <cmd_min>-25</cmd_min>
       </plugin>
-      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+      <plugin filename="gz-sim-apply-joint-force-system" name="gz::sim::systems::ApplyJointForce">
         <joint_name>${prefix}_calf_joint</joint_name>
-        <topic>/cmd_pos/${prefix}_calf_joint</topic>
-        <p_gain>120</p_gain>
-        <i_gain>0.1</i_gain>
-        <d_gain>3.0</d_gain>
-        <i_max>1</i_max>
-        <i_min>-1</i_min>
-        <cmd_max>25</cmd_max>
-        <cmd_min>-25</cmd_min>
       </plugin>
     </gazebo>
 
@@ -265,7 +241,8 @@
     <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
       <odom_frame>odom</odom_frame>
       <robot_base_frame>base_link</robot_base_frame>
-      <odom_publish_frequency>50</odom_publish_frequency>
+      <odom_publish_frequency>250</odom_publish_frequency>
+      <dimensions>3</dimensions>
     </plugin>
   </gazebo>
 
