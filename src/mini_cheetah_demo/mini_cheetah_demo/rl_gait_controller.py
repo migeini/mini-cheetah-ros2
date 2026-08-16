@@ -55,8 +55,13 @@ class RLGaitController(Node):
         self.ort_session = None
         if HAS_ONNX:
             if os.path.exists(self.model_path):
-                self.ort_session = ort.InferenceSession(self.model_path)
-                self.get_logger().info(f"✅ 成功加载开源 ONNX 模型: {self.model_path}")
+                try:
+                    self.ort_session = ort.InferenceSession(self.model_path)
+                    self.get_logger().info(f"✅ 成功加载开源 ONNX 模型: {self.model_path}")
+                except Exception as e:
+                    self.get_logger().error(f"❌ 加载 ONNX 模型失败 (可能文件损坏或非二进制格式): {e}")
+                    self.ort_session = None
+                    self.get_logger().warn("⚠️ 系统将进入 [Dummy] 模拟模式 (输出默认站立姿势)。")
             else:
                 self.get_logger().warn(f"❌ 找不到 ONNX 模型: {self.model_path}")
                 self.get_logger().warn("⚠️ 系统将进入 [Dummy] 模拟模式 (输出默认站立姿势)。")
@@ -107,10 +112,9 @@ class RLGaitController(Node):
     def inference_loop(self):
         """核心推断循环 50Hz"""
         
-        # 1. 组装标准 48 维观测矩阵 (Observation Matrix)
-        # 大部分开源模型要求顺序：[线速度(3), 角速度(3), 投影重力(3), 命令(3), 关节误差(12), 关节速度(12), 上一帧动作(12)]
+        # 1. 组装标准 45 维观测矩阵 (Observation Matrix)
+        # 针对 unitree-go2-velocity-flat 模型的顺序：[角速度(3), 投影重力(3), 命令(3), 关节误差(12), 关节速度(12), 上一帧动作(12)]
         obs = np.concatenate([
-            self.base_lin_vel,                   # 3
             self.base_ang_vel,                   # 3
             self.projected_gravity,              # 3
             self.commands,                       # 3
