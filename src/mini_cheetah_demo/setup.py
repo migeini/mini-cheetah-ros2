@@ -30,6 +30,7 @@ setup(
             'sine_joint_publisher = mini_cheetah_demo.sine_joint_publisher:main',
             'ik_gait_controller = mini_cheetah_demo.ik_gait_controller:main',
             'teleop_keyboard = mini_cheetah_demo.teleop_keyboard:main',
+            'rl_gait_controller = mini_cheetah_demo.rl_gait_controller:main',
         ],
     },
 )

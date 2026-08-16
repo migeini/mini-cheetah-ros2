@@ -92,3 +92,64 @@
   ros_type_name: 'nav_msgs/msg/Odometry'
   gz_type_name: 'gz.msgs.Odometry'
   direction: GZ_TO_ROS
+
+- ros_topic_name: '/imu'
+  gz_topic_name: '/imu'
+  ros_type_name: 'sensor_msgs/msg/Imu'
+  gz_type_name: 'gz.msgs.IMU'
+  direction: GZ_TO_ROS
+
+- ros_topic_name: '/contact/FL'
+  gz_topic_name: '/contact/FL'
+  ros_type_name: 'ros_gz_interfaces/msg/Contacts'
+  gz_type_name: 'gz.msgs.Contacts'
+  direction: GZ_TO_ROS
+
+- ros_topic_name: '/contact/FR'
+  gz_topic_name: '/contact/FR'
+  ros_type_name: 'ros_gz_interfaces/msg/Contacts'
+  gz_type_name: 'gz.msgs.Contacts'
+  direction: GZ_TO_ROS
+
+- ros_topic_name: '/contact/RL'
+  gz_topic_name: '/contact/RL'
+  ros_type_name: 'ros_gz_interfaces/msg/Contacts'
+  gz_type_name: 'gz.msgs.Contacts'
+  direction: GZ_TO_ROS
+
+- ros_topic_name: '/contact/RR'
+  gz_topic_name: '/contact/RR'
+  ros_type_name: 'ros_gz_interfaces/msg/Contacts'
+  gz_type_name: 'gz.msgs.Contacts'
+  direction: GZ_TO_ROS
+
+
+- ros_topic_name: '/imu'
+  gz_topic_name: '/imu'
+  ros_type_name: 'sensor_msgs/msg/Imu'
+  gz_type_name: 'gz.msgs.IMU'
+  direction: GZ_TO_ROS
+
+- ros_topic_name: '/contact/FL'
+  gz_topic_name: '/contact/FL'
+  ros_type_name: 'ros_gz_interfaces/msg/Contacts'
+  gz_type_name: 'gz.msgs.Contacts'
+  direction: GZ_TO_ROS
+
+- ros_topic_name: '/contact/FR'
+  gz_topic_name: '/contact/FR'
+  ros_type_name: 'ros_gz_interfaces/msg/Contacts'
+  gz_type_name: 'gz.msgs.Contacts'
+  direction: GZ_TO_ROS
+
+- ros_topic_name: '/contact/RL'
+  gz_topic_name: '/contact/RL'
+  ros_type_name: 'ros_gz_interfaces/msg/Contacts'
+  gz_type_name: 'gz.msgs.Contacts'
+  direction: GZ_TO_ROS
+
+- ros_topic_name: '/contact/RR'
+  gz_topic_name: '/contact/RR'
+  ros_type_name: 'ros_gz_interfaces/msg/Contacts'
+  gz_type_name: 'gz.msgs.Contacts'
+  direction: GZ_TO_ROS

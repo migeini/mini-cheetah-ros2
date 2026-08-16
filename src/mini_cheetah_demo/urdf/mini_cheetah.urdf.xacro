@@ -61,6 +61,12 @@
 
   <gazebo reference="base_link">
     <material>Gazebo/DarkGrey</material>
+    <sensor name="imu_sensor" type="imu">
+      <always_on>1</always_on>
+      <update_rate>100</update_rate>
+      <visualize>true</visualize>
+      <topic>/imu</topic>
+    </sensor>
   </gazebo>
 
   <!-- ==================== 单腿 3 自由度 Xacro 宏 ==================== -->
@@ -186,7 +192,7 @@
         </geometry>
         <material name="red"/>
       </visual>
-      <collision>
+      <collision name="${prefix}_foot_collision">
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
           <sphere radius="0.025"/>
@@ -208,6 +214,16 @@
       <max_vel>0.01</max_vel>
       <min_depth>0.001</min_depth>
       <material>Gazebo/Red</material>
+      
+      <!-- 强化学习所需的接触力传感器 -->
+      <sensor name="${prefix}_contact_sensor" type="contact">
+        <always_on>true</always_on>
+        <update_rate>100</update_rate>
+        <contact>
+          <collision>${prefix}_foot_collision</collision>
+        </contact>
+        <topic>/contact/${prefix}</topic>
+      </sensor>
     </gazebo>
 
     <!-- Gazebo Harmonic 关节位置闭环 PID 力矩控制器 -->
@@ -266,6 +282,12 @@
       <odom_frame>odom</odom_frame>
       <robot_base_frame>base_link</robot_base_frame>
       <odom_publish_frequency>50</odom_publish_frequency>
+    </plugin>
+    
+    <!-- RL 传感器系统插件 -->
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu">
+    </plugin>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact">
     </plugin>
   </gazebo>
 
