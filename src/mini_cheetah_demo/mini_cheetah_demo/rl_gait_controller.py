@@ -3,35 +3,46 @@ import rclpy
 from rclpy.node import Node
 import math
 import numpy as np
+import os
+
+try:
+    import onnxruntime as ort
+    HAS_ONNX = True
+except ImportError:
+    HAS_ONNX = False
 
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Imu, JointState
-from ros_gz_interfaces.msg import Contacts
 from std_msgs.msg import Float64
 
 class RLGaitController(Node):
     def __init__(self):
         super().__init__('rl_gait_controller')
         
-        # --- 1. 策略超参数 ---
-        self.freq = 50.0  # 控制频率 50Hz
+        # --- 1. RL 模型参数 (遵循 rl_sar 业界标准) ---
+        self.freq = 50.0
         self.dt = 1.0 / self.freq
         
-        # --- 2. 状态缓冲 (State Buffer) ---
-        self.target_vx = 0.0
-        self.target_vy = 0.0
-        self.target_wz = 0.0
+        # 默认的 nominal 关节角度 (Hip, Thigh, Calf)
+        self.default_dof_pos = np.array([
+            0.0, 0.8, -1.6,  # FL
+            0.0, 0.8, -1.6,  # FR
+            0.0, 0.8, -1.6,  # RL
+            0.0, 0.8, -1.6   # RR
+        ])
         
-        self.imu_roll = 0.0
-        self.imu_pitch = 0.0
-        self.imu_yaw = 0.0
-        self.imu_ang_vel = [0.0, 0.0, 0.0]
+        self.action_scale = 0.25
         
-        self.contact_states = {'FL': False, 'FR': False, 'RL': False, 'RR': False}
-        self.joint_positions = [0.0] * 12
-        self.joint_velocities = [0.0] * 12
+        # --- 2. 状态记忆区 ---
+        self.commands = np.zeros(3)      # [vx, vy, yaw_rate]
+        self.base_lin_vel = np.zeros(3)  # 估算的线速度
+        self.base_ang_vel = np.zeros(3)  # IMU 角速度
+        self.projected_gravity = np.array([0.0, 0.0, -1.0]) # 旋转后的重力
         
-        # 关节名称顺序必须严格对齐 RL 模型的期望顺序
+        self.dof_pos = np.zeros(12)
+        self.dof_vel = np.zeros(12)
+        self.actions = np.zeros(12)      # Previous actions
+        
         self.joint_names = [
             'FL_hip_joint', 'FL_thigh_joint', 'FL_calf_joint',
             'FR_hip_joint', 'FR_thigh_joint', 'FR_calf_joint',
@@ -39,102 +50,100 @@ class RLGaitController(Node):
             'RR_hip_joint', 'RR_thigh_joint', 'RR_calf_joint'
         ]
 
-        # --- 3. 订阅器 (感知神经系统) ---
+        # --- 3. 初始化 ONNX 推理引擎 ---
+        self.model_path = os.path.expanduser('~/Ros2/demo_ws/models/policy.onnx')
+        self.ort_session = None
+        if HAS_ONNX:
+            if os.path.exists(self.model_path):
+                self.ort_session = ort.InferenceSession(self.model_path)
+                self.get_logger().info(f"✅ 成功加载开源 ONNX 模型: {self.model_path}")
+            else:
+                self.get_logger().warn(f"❌ 找不到 ONNX 模型: {self.model_path}")
+                self.get_logger().warn("⚠️ 系统将进入 [Dummy] 模拟模式 (输出默认站立姿势)。")
+        else:
+            self.get_logger().error("❌ 未安装 onnxruntime 库！请运行: pip3 install onnxruntime numpy")
+            self.get_logger().warn("⚠️ 系统将进入 [Dummy] 模拟模式 (输出默认站立姿势)。")
+
+        # --- 4. ROS 2 通信接口 ---
         self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
         self.create_subscription(Imu, '/imu', self.imu_callback, 10)
         self.create_subscription(JointState, '/joint_states', self.joint_state_callback, 10)
         
-        # 4 个脚底触觉传感器
-        self.create_subscription(Contacts, '/contact/FL', lambda msg: self.contact_callback(msg, 'FL'), 10)
-        self.create_subscription(Contacts, '/contact/FR', lambda msg: self.contact_callback(msg, 'FR'), 10)
-        self.create_subscription(Contacts, '/contact/RL', lambda msg: self.contact_callback(msg, 'RL'), 10)
-        self.create_subscription(Contacts, '/contact/RR', lambda msg: self.contact_callback(msg, 'RR'), 10)
-
-        # --- 4. 发布器 (运动执行系统) ---
         self.joint_pubs = {}
         for name in self.joint_names:
             self.joint_pubs[name] = self.create_publisher(Float64, f'/cmd_pos/{name}', 10)
             
-        # --- 5. 主循环定时器 ---
         self.timer = self.create_timer(self.dt, self.inference_loop)
-        
-        self.get_logger().info("✅ 强化学习神经系统节点已启动！正在等待传感器数据...")
 
-    # ================= 回调函数 =================
     def cmd_vel_callback(self, msg):
-        self.target_vx = msg.linear.x
-        self.target_vy = msg.linear.y
-        self.target_wz = msg.angular.z
+        self.commands[0] = msg.linear.x
+        self.commands[1] = msg.linear.y
+        self.commands[2] = msg.angular.z
 
     def imu_callback(self, msg):
-        # 简单的四元数转欧拉角 (为了给 RL 更好的观测值)
+        self.base_ang_vel = np.array([
+            msg.angular_velocity.x,
+            msg.angular_velocity.y,
+            msg.angular_velocity.z
+        ])
+        
+        # 将世界坐标系的重力 [0, 0, -1] 投影到机身局部坐标系 (Projected Gravity)
         q = msg.orientation
-        sinr_cosp = 2 * (q.w * q.x + q.y * q.z)
-        cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y)
-        self.imu_roll = math.atan2(sinr_cosp, cosr_cosp)
-        
-        sinp = 2 * (q.w * q.y - q.z * q.x)
-        self.imu_pitch = math.asin(sinp) if abs(sinp) <= 1 else math.copysign(math.pi/2, sinp)
-        
-        self.imu_ang_vel = [msg.angular_velocity.x, msg.angular_velocity.y, msg.angular_velocity.z]
+        # 使用四元数旋转矩阵公式计算 Z 轴的投影
+        self.projected_gravity = np.array([
+            2 * (q.x * q.z - q.w * q.y),
+            2 * (q.y * q.z + q.w * q.x),
+            1 - 2 * (q.x**2 + q.y**2)
+        ]) * -1.0 # 重力向下
 
     def joint_state_callback(self, msg):
-        # 将无序的 joint_states 重新按照 self.joint_names 的顺序排列
-        if not msg.name:
-            return
-            
+        if not msg.name: return
         for idx, name in enumerate(self.joint_names):
             if name in msg.name:
                 i = msg.name.index(name)
-                if len(msg.position) > i:
-                    self.joint_positions[idx] = msg.position[i]
-                if len(msg.velocity) > i:
-                    self.joint_velocities[idx] = msg.velocity[i]
+                if len(msg.position) > i: self.dof_pos[idx] = msg.position[i]
+                if len(msg.velocity) > i: self.dof_vel[idx] = msg.velocity[i]
 
-    def contact_callback(self, msg, leg_name):
-        # 如果 msg.contacts 有数据，说明发生了碰撞（触地）
-        self.contact_states[leg_name] = len(msg.contacts) > 0
-
-    # ================= RL 推理循环 =================
     def inference_loop(self):
-        """
-        这个函数以 50Hz 运行。负责打包 Observation 并调用深度学习模型。
-        """
-        # 1. 构造 Observation 向量 (假装我们在喂给神经网络)
-        # 典型的四足 RL 观测值包括：目标指令(3)、IMU姿态(2)、IMU角速度(3)、12关节角度(12)、12关节速度(12)、脚底触地(4)
-        obs = [
-            self.target_vx, self.target_vy, self.target_wz,
-            self.imu_roll, self.imu_pitch,
-            self.imu_ang_vel[0], self.imu_ang_vel[1], self.imu_ang_vel[2]
-        ]
-        obs.extend(self.joint_positions)
-        obs.extend(self.joint_velocities)
-        obs.extend([
-            1.0 if self.contact_states['FL'] else 0.0,
-            1.0 if self.contact_states['FR'] else 0.0,
-            1.0 if self.contact_states['RL'] else 0.0,
-            1.0 if self.contact_states['RR'] else 0.0,
-        ])
+        """核心推断循环 50Hz"""
         
-        obs_array = np.array(obs)
+        # 1. 组装标准 48 维观测矩阵 (Observation Matrix)
+        # 大部分开源模型要求顺序：[线速度(3), 角速度(3), 投影重力(3), 命令(3), 关节误差(12), 关节速度(12), 上一帧动作(12)]
+        obs = np.concatenate([
+            self.base_lin_vel,                   # 3
+            self.base_ang_vel,                   # 3
+            self.projected_gravity,              # 3
+            self.commands,                       # 3
+            (self.dof_pos - self.default_dof_pos), # 12
+            self.dof_vel,                        # 12
+            self.actions                         # 12
+        ]).astype(np.float32)
+
+        # 扩充 batch 维度
+        obs_tensor = np.expand_dims(obs, axis=0)
         
-        # 打印调试信息：神经元是否感受到触地？
-        contacts_str = f"FL:{self.contact_states['FL']} FR:{self.contact_states['FR']} RL:{self.contact_states['RL']} RR:{self.contact_states['RR']}"
-        
-        # 为了不刷屏，只在有非零指令或发生触地变化时打印部分日志
-        if abs(self.target_vx) > 0.1 or sum(self.contact_states.values()) > 0:
-            self.get_logger().info(f"RL 观测向量维度: {len(obs_array)}, 触地感知: {contacts_str}")
-        
-        # 2. 调用模型推理 (Dummy)
-        # TODO: 这里未来将加载 policy.onnx。目前我们只输出默认的站立角度 (0, 0.8, -1.6)
-        actions = []
-        for i in range(4):
-            actions.extend([0.0, 0.8, -1.6]) # hip, thigh, calf 初始站立姿态
+        # 为了不刷屏，只在运动时打印感知矩阵的前 6 维
+        if np.linalg.norm(self.commands) > 0.1:
+            self.get_logger().debug(f"Obs Gravity: {self.projected_gravity.round(2)}, Cmd: {self.commands.round(2)}")
+
+        # 2. 推理计算 (Action Decoder)
+        if self.ort_session is not None:
+            # 真实 ONNX 推理
+            ort_inputs = {self.ort_session.get_inputs()[0].name: obs_tensor}
+            ort_outs = self.ort_session.run(None, ort_inputs)
+            self.actions = ort_outs[0][0] # 获取模型输出 [12]
+        else:
+            # Dummy 模式：输出极小的随机噪音，让机器狗仅仅保持站立
+            self.actions = np.zeros(12)
             
-        # 3. 将推理结果打向底层物理引擎
+        # 3. 动作解码 (Action Scaling) 并转换回物理角度
+        # 经典公式: Target_Pos = Nominal_Pos + Action * Action_Scale
+        target_pos = self.default_dof_pos + self.actions * self.action_scale
+        
+        # 4. 发布执行
         for idx, name in enumerate(self.joint_names):
             msg = Float64()
-            msg.data = actions[idx]
+            msg.data = float(target_pos[idx])
             self.joint_pubs[name].publish(msg)
 
 def main(args=None):
